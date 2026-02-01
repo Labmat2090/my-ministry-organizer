@@ -1,0 +1,42 @@
+{
+  "name": "My Ministry Organizer",
+  "short_name": "Ministry Organizer",
+  "description": "Field service organizer for pioneers - track hours, bible studies, and return visits",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Add Entry",
+      "short_name": "Add",
+      "description": "Add today's time entry",
+      "url": "/?action=add",
+      "icons": []
+    },
+    {
+      "name": "View Progress",
+      "short_name": "Progress",
+      "description": "View monthly progress",
+      "url": "/",
+      "icons": []
+    }
+  ]
+}
