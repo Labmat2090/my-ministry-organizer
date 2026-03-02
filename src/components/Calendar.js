@@ -1,17 +1,19 @@
-// src/components/Calendar.js
 'use client'
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { getMonthEntries } from '../lib/db'
-import { 
-  getMonthName, 
-  generateCalendarGrid, 
-  isToday, 
-  formatHours 
-} from '../lib/utils'
+import { getMonthName, generateCalendarGrid, isToday, formatHours } from '../lib/utils'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function getIntensityStyle(hours) {
+  if (!hours || hours === 0) return null
+  if (hours < 1)  return { bg: 'color-mix(in srgb, var(--color-primary) 12%, var(--color-surface))', dot: 'var(--color-primary)' }
+  if (hours < 3)  return { bg: 'color-mix(in srgb, var(--color-primary) 22%, var(--color-surface))', dot: 'var(--color-primary)' }
+  if (hours < 5)  return { bg: 'color-mix(in srgb, var(--color-primary) 35%, var(--color-surface))', dot: 'var(--color-primary)' }
+  return          { bg: 'color-mix(in srgb, var(--color-primary) 50%, var(--color-surface))', dot: 'var(--color-primary)' }
+}
 
 export default function Calendar({ year, month, onDateClick, onMonthChange }) {
   const [entries, setEntries] = useState([])
@@ -26,114 +28,158 @@ export default function Calendar({ year, month, onDateClick, onMonthChange }) {
       setLoading(true)
       const data = await getMonthEntries(year, month)
       setEntries(data)
-    } catch (error) {
-      console.error('Failed to load entries:', error)
+    } catch (err) {
+      console.error('Failed to load entries:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  function getEntryForDay(day) {
-    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return entries.find(e => e.entryDate === dateString)
+  function getEntry(day) {
+    const ds = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return entries.find(e => e.entryDate === ds)
   }
 
-  const calendarGrid = generateCalendarGrid(year, month)
+  const grid = generateCalendarGrid(year, month)
+  const totalHours = entries.reduce((s, e) => s + e.hours, 0)
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Header */}
-      <div className="bg-primary-600 text-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => onMonthChange('prev')}
-            className="p-2 hover:bg-primary-700 rounded-lg transition-colors"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+    <div className="card overflow-hidden animate-fade-up delay-200">
 
-          <h2 className="text-xl font-semibold">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <button
+          onClick={() => onMonthChange('prev')}
+          className="btn-ghost w-9 h-9 p-0 rounded-lg"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <div className="text-center">
+          <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--color-text)' }}>
             {getMonthName(month)} {year}
           </h2>
-
-          <button
-            onClick={() => onMonthChange('next')}
-            className="p-2 hover:bg-primary-700 rounded-lg transition-colors"
-            aria-label="Next month"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          {totalHours > 0 && (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              {formatHours(totalHours)}h logged this month
+            </p>
+          )}
         </div>
+
+        <button
+          onClick={() => onMonthChange('next')}
+          className="btn-ghost w-9 h-9 p-0 rounded-lg"
+          aria-label="Next month"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
-        {WEEKDAYS.map(day => (
+      {/* ── Weekday labels ── */}
+      <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        {WEEKDAYS.map(d => (
           <div
-            key={day}
-            className="p-3 text-center text-sm font-medium text-gray-600"
+            key={d}
+            className="py-2.5 text-center text-xs font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--color-muted)' }}
           >
-            {day}
+            {d}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="bg-white">
-        {calendarGrid.map((week, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 border-b border-gray-200 last:border-b-0">
-            {week.map((day, dayIndex) => {
+      {/* ── Grid ── */}
+      <div style={{ background: 'var(--color-surface)' }}>
+        {grid.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7" style={{ borderBottom: wi < grid.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+            {week.map((day, di) => {
               if (!day) {
-                return <div key={dayIndex} className="min-h-[100px] bg-gray-50" />
+                return (
+                  <div
+                    key={di}
+                    className="min-h-[88px]"
+                    style={{
+                      borderRight: di < 6 ? '1px solid var(--color-border)' : 'none',
+                      background: 'var(--color-bg)',
+                      opacity: 0.5,
+                    }}
+                  />
+                )
               }
 
-              const entry = getEntryForDay(day)
-              const hasEntry = entry && entry.hours > 0
-              const todayClass = isToday(year, month, day) ? 'ring-2 ring-primary-500' : ''
-              
+              const entry = getEntry(day)
+              const hours = entry?.hours || 0
+              const intensity = getIntensityStyle(hours)
+              const today = isToday(year, month, day)
+
               return (
                 <button
-                  key={dayIndex}
+                  key={di}
                   onClick={() => onDateClick({ year, month, day })}
-                  className={`min-h-[100px] p-2 text-left hover:bg-gray-50 transition-colors border-r border-gray-200 last:border-r-0 ${todayClass}`}
+                  style={{
+                    minHeight: '88px',
+                    padding: '10px 10px 8px',
+                    textAlign: 'left',
+                    borderRight: di < 6 ? '1px solid var(--color-border)' : 'none',
+                    background: intensity ? intensity.bg : 'var(--color-surface)',
+                    transition: 'background 0.15s, transform 0.1s',
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.96)' }}
+                  onMouseLeave={e => { e.currentTarget.style.filter = '' }}
                 >
-                  <div className="flex flex-col h-full">
-                    {/* Day number */}
-                    <div className={`text-sm font-medium mb-2 ${
-                      isToday(year, month, day) 
-                        ? 'text-primary-600 font-bold' 
-                        : 'text-gray-900'
-                    }`}>
+                  {/* Day number */}
+                  <div style={{ marginBottom: 6 }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        fontSize: 13,
+                        fontWeight: today ? 700 : 500,
+                        background: today ? 'var(--color-primary)' : 'transparent',
+                        color: today ? 'white' : 'var(--color-text)',
+                      }}
+                    >
                       {day}
-                    </div>
+                    </span>
+                  </div>
 
-                    {/* Entry data */}
-                    {hasEntry && (
-                      <div className="mt-auto space-y-1">
-                        <div className="text-lg font-bold text-primary-600">
-                          {formatHours(entry.hours)}h
-                        </div>
+                  {/* Entry content */}
+                  {hours > 0 ? (
+                    <div>
+                      <div
+                        className="font-mono-num text-base font-bold leading-none"
+                        style={{ color: 'var(--color-primary)' }}
+                      >
+                        {formatHours(hours)}h
+                      </div>
+                      <div className="flex flex-col gap-0.5 mt-1.5">
                         {entry.bibleStudies > 0 && (
-                          <div className="text-xs text-gray-600">
-                            📖 {entry.bibleStudies} BS
-                          </div>
+                          <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                            📖 {entry.bibleStudies}
+                          </span>
                         )}
                         {entry.returnVisits > 0 && (
-                          <div className="text-xs text-gray-600">
-                            🏠 {entry.returnVisits} RV
-                          </div>
+                          <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                            🏠 {entry.returnVisits}
+                          </span>
                         )}
                       </div>
-                    )}
-
-                    {/* Empty state hint */}
-                    {!hasEntry && (
-                      <div className="mt-auto text-xs text-gray-400">
-                        Click to add
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="text-xs"
+                      style={{ color: 'var(--color-border)', marginTop: 2 }}
+                    >
+                      + add
+                    </div>
+                  )}
                 </button>
               )
             })}
@@ -141,11 +187,23 @@ export default function Calendar({ year, month, onDateClick, onMonthChange }) {
         ))}
       </div>
 
-      {loading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
-          <div className="text-gray-600">Loading...</div>
-        </div>
-      )}
+      {/* ── Legend ── */}
+      <div
+        className="flex items-center justify-end gap-3 px-6 py-3 text-xs border-t"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-muted)' }}
+      >
+        <span>Less</span>
+        {[12, 22, 35, 50].map((p, i) => (
+          <div
+            key={i}
+            style={{
+              width: 14, height: 14, borderRadius: 3,
+              background: `color-mix(in srgb, var(--color-primary) ${p}%, var(--color-surface))`
+            }}
+          />
+        ))}
+        <span>More</span>
+      </div>
     </div>
   )
 }
